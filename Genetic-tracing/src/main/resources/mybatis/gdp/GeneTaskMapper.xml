@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.project.gdp.mapper.GeneTaskMapper">
+    
+    <resultMap type="GeneTask" id="GeneTaskResult">
+        <result property="id"    column="id"    />
+        <result property="processId"    column="process_id"    />
+        <result property="processName"    column="processName"    />
+        <result property="processStep"    column="processStep"    />
+        <result property="processIgnoreCommand"    column="processIgnoreCommand"    />
+        <result property="instanceId"    column="instanceId"    />
+        <result property="instanceName"    column="instanceName"    />
+        <result property="status"    column="status"    />
+        <result property="time"    column="time"    />
+        <result property="record"    column="record"    />
+    </resultMap>
+
+    <sql id="selectGeneTaskVo">
+        select a.id, a.process_id, b.name processName,b.step processStep,b.ignoreCommand processIgnoreCommand,c.id instanceId, c.name instanceName,a.status, a.time, a.record from gdp_task a
+        left join gdp_process b on b.id = a.process_id
+		left join gdp_instance c on c.id = a.instance_id
+    </sql>
+
+    <select id="selectGeneTaskList" parameterType="GeneTask" resultMap="GeneTaskResult">
+        <include refid="selectGeneTaskVo"/>
+        <where>  
+            <if test="processName != null  and processName != ''"> and b.name like '%'||#{processName}||'%'</if>
+            <if test="processId != null  and processId != ''"> and b.id = #{processId}</if>
+            <if test="instanceName != null  and instanceName != ''"> and c.name like '%'||#{instanceName}||'%'</if>
+            <if test="instanceId != null  and instanceId != ''"> and c.id = #{instanceId}</if>
+            <if test="status != null "> and a.status = #{status}</if>
+        </where>
+        ORDER BY c.name,b.step
+    </select>
+    
+    <select id="selectGeneTaskById" parameterType="String" resultMap="GeneTaskResult">
+        <include refid="selectGeneTaskVo"/>
+        where a.id = #{id}
+    </select>
+        
+    <insert id="insertGeneTask" parameterType="GeneTask">
+        insert into gdp_task
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">id,</if>
+            <if test="processId != null and processId != ''">process_id,</if>
+            <if test="instanceId != null and instanceId != ''">instance_id,</if>
+            <if test="status != null">status,</if>
+            <if test="time != null">time,</if>
+            <if test="record != null">record,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">#{id},</if>
+            <if test="processId != null and processId != ''">#{processId},</if>
+            <if test="instanceId != null and instanceId != ''">#{instanceId},</if>
+            <if test="status != null">#{status},</if>
+            <if test="time != null">#{time},</if>
+            <if test="record != null">#{record},</if>
+         </trim>
+    </insert>
+
+    <update id="updateGeneTask" parameterType="GeneTask">
+        update gdp_task
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="processId != null and processId != ''">process_id = #{processId},</if>
+            <if test="instanceId != null and instanceId != ''">instance_id = #{instanceId},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="time != null">time = #{time},</if>
+            <if test="record != null">record = #{record},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteGeneTaskById" parameterType="String">
+        delete from gdp_task where id = #{id}
+    </delete>
+
+    <delete id="deleteGeneTaskByIds" parameterType="String">
+        delete from gdp_task where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

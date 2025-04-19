@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.project.gdp.mapper.GeneEvoTreeMapper">
+    
+    <resultMap type="GeneEvoTree" id="GeneEvoTreeResult">
+        <result property="id"    column="id"    />
+        <result property="name"    column="name"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createDate"    column="create_date"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateDate"    column="update_date"    />
+        <result property="resultStatus"    column="result_status"    />
+        <result property="resultInfo"    column="result_info"    />
+        <result property="time"    column="time"    />
+    </resultMap>
+
+    <sql id="selectGeneEvoTreeVo">
+        select id, name, create_by, create_date, update_by, update_date, result_status, result_info, time from gdp_evo_tree
+    </sql>
+
+    <select id="selectGeneEvoTreeList" parameterType="GeneEvoTree" resultMap="GeneEvoTreeResult">
+        <include refid="selectGeneEvoTreeVo"/>
+        <where>  
+            <if test="name != null  and name != ''"> and name like '%'||#{name}||'%'</if>
+            <if test="createBy != null  and createBy != ''"> and create_by = #{createBy}</if>
+        </where>
+    </select>
+    
+    <select id="selectGeneEvoTreeByName" parameterType="String" resultMap="GeneEvoTreeResult">
+        <include refid="selectGeneEvoTreeVo"/>
+        where name = #{name}
+    </select>
+        
+    <insert id="insertGeneEvoTree" parameterType="GeneEvoTree">
+        insert into gdp_evo_tree
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">id,</if>
+            <if test="name != null and name != ''">name,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            <if test="resultStatus != null">result_status,</if>
+            <if test="resultInfo != null">result_info,</if>
+            <if test="time != null">time,</if>
+            create_date
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">#{id},</if>
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            <if test="resultStatus != null">#{resultStatus},</if>
+            <if test="resultInfo != null">#{resultInfo},</if>
+            <if test="time != null">#{time},</if>
+            (datetime(CURRENT_TIMESTAMP,'localtime'))
+         </trim>
+    </insert>
+
+    <update id="updateGeneEvoTree" parameterType="GeneEvoTree">
+        update gdp_evo_tree
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="id != null and id != ''">id = #{id},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="resultStatus != null">result_status = #{resultStatus},</if>
+            <if test="resultInfo != null">result_info = #{resultInfo},</if>
+            <if test="time != null">time = #{time},</if>
+            update_date = (datetime(CURRENT_TIMESTAMP,'localtime'))
+        </trim>
+        where name = #{name}
+    </update>
+
+    <delete id="deleteGeneEvoTreeByName" parameterType="String">
+        delete from gdp_evo_tree where name = #{name}
+    </delete>
+
+    <delete id="deleteGeneEvoTreeByNames" parameterType="String">
+        delete from gdp_evo_tree where name in
+        <foreach item="name" collection="array" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+    </delete>
+
+    <select id="getByName" parameterType="String" resultType="GeneEvoTree">
+        <include refid="selectGeneEvoTreeVo"/>
+        WHERE name = #{name}
+    </select>
+
+</mapper>

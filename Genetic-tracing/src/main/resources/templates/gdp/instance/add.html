@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <th:block th:include="include :: header('新增处理实例')" />
+    <th:block th:include="include :: datetimepicker-css" />
+</head>
+<body class="white-bg">
+    <div class="wrapper wrapper-content animated fadeInRight ibox-content">
+        <form class="form-horizontal m" id="form-instance-add">
+            <input type="hidden" id="id" name="id" />
+            <div class="col-md-6 b-r">
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">实例名称：</label>
+                    <div class="col-sm-9">
+                        <input name="name" id="name" class="form-control" type="text" required>
+                    </div>
+                </div>
+<!--                <div class="form-group">-->
+<!--                    <label class="col-sm-3 control-label">是否合并：</label>-->
+<!--                    <div class="col-sm-9">-->
+<!--                        <label class="radio-box">-->
+<!--                            <input type="radio" checked="" value="1" id="combineStatus1" name="combineStatus">是</label>-->
+<!--                        <label class="radio-box">-->
+<!--                            <input type="radio" value="0" id="combineStatus2" name="combineStatus">否</label>-->
+<!--                    </div>-->
+<!--                </div>-->
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">当前处理步骤：</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-static" id="currentStep"></p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">累计耗时：</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-static" id="timeConsum"></p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-12 col-sm-offset-3">
+                        <button id="startGeneProcess" class="btn btn-primary">开始</button>
+                        <button onclick="$.modal.closeTab()" class="btn btn-danger" type="button">返回</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group text-center">
+                    <strong>记录</strong>
+                </div>
+                <div id="scrollDiv" style="overflow-y: scroll;max-height: 400px;">
+                    <table id="table_title">
+
+                    </table>
+                </div>
+            </div>
+        </form>
+    </div>
+    <th:block th:include="include :: footer" />
+    <th:block th:include="include :: datetimepicker-js" />
+    <script th:inline="javascript">
+        var prefix = ctx + "gdp/instance"
+        //处理任务滚动条设置最下方
+        $('#scrollDiv').scrollTop($('#scrollDiv')[0].scrollHeight);
+
+        // var cs = "${geneInstance.combineStatus}";
+        // if (cs == $('#combineStatus1').val()) {
+        //     $('#combineStatus1').attr("checked", "checked");
+        // } else if(cs == $('#combineStatus2').val()){
+        //     $('#combineStatus2').attr("checked", "checked");
+        // }
+
+        //开启流程处理
+        $('#startGeneProcess').click(function () {
+            var name = $('#name').val();
+            if(isBlank(name)){
+                $.modal.msgError('请先填写实例名称！',{});
+                return false;
+            }
+            var combineStatus = $('input:radio[name=combineStatus]:checked').val();
+
+            getGeneProcessListAndCreateInstance(name,true,combineStatus);
+        });
+
+        // //继续运行
+        // $('#btnContinue').click(function () {
+        //     var name = '${geneInstance.name}';
+        //     var btnContinue = $('#btnContinue');
+        //     btnContinue.attr('class','btn btn-default');
+        //     btnContinue.attr('disabled',true);
+        //     var combineStatus = $('input:radio[name=combineStatus]:checked').val();
+        //     getGeneProcessListAndCreateInstance(name,false,combineStatus);
+        // });
+
+
+        $('#name').change(function () {
+            var name = $(this).val();
+                if(isNotBlank(name)) {
+                    $.ajax({
+                        type: 'post',
+                        url: '/gdp/instance/judgeInstanceExistByName',
+                        data: {name: name},
+                        success: function (callback) {
+                            if(isNotBlank(callback.data.result) && callback.data.result === "true"){
+                                $('#name').val("");
+                                $.modal.msgError(name+'实例已存在');
+                            }
+                        },
+                        error:function (jqXHR, textStatus, errorThrown) {
+                            errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                            $.modal.msgError(errorThrown);
+                        }
+                    })
+                }
+        });
+
+        /**
+         * 获取生效流程和创建实例
+         * @param dirName	实例名称
+         * @param flag		是否创建实例
+         */
+        function getGeneProcessListAndCreateInstance(dirName,flag,combineStatus) {
+            $.ajax({
+                type:'post',
+                url:'/gdp/process/findStatusListAndCreateInstance',
+                data:{dirName:dirName,flag:flag,combineStatus:combineStatus},
+                beforeSend:function(){
+                    var startGeneProcess = $('#startGeneProcess');
+                    startGeneProcess.attr('class','btn btn-default');
+                    startGeneProcess.attr('disabled',true);
+                },
+                success:function(callback){
+                    if(isNotBlank(callback.data)){
+                        $('#id').val(callback.data.instanceId);
+                        var list = callback.data.list;
+                        reProcessGene(list,0);
+                    }
+                },
+                error:function (jqXHR, textStatus, errorThrown) {
+                    errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                    $.modal.msgError(errorThrown,{title:'错误提示',icon:'2'})
+                }
+            })
+        }
+
+        /**
+         * 递归list的数据进行流程处理请求
+         * @param list	流程列表
+         * @param i		下标
+         */
+        function reProcessGene(list,i){
+            var process = list[i];
+            if(i===list.length){
+                return;	//运行完毕出口
+            }
+            $('#currentStep').text('流程'+process.step+'：'+process.name);
+            $('#scrollDiv').scrollTop($('#scrollDiv')[0].scrollHeight+50);
+            updateGeneInstanceFinalProcess(process);
+            var t;
+            var name = $('#name').val();
+            var instanceId = $('#id').val();
+            $.ajax({
+                type:'post',
+                url:'/gdp/process/processGene',
+                data:{id:process.id,dirName:name,instanceId:instanceId},
+                async:true,
+                beforeSend:function () {
+                    t =layer.msg('正在进行流程'+process.step,{icon:16,shade:0.01,time:0,shadeClose:false});
+                },
+                success:function(callback){
+                    addTableRow(callback.data);
+                    for(var key in callback.data){
+                        if(key.indexOf('耗时')!==-1){
+                            var time = $('#timeConsum').text();
+                            $('#timeConsum').text(dataTimeSum(time,callback.data[key]));
+                        }
+                    }
+                    layer.close(t);
+                    if(isNotBlank(callback.e_msg)){
+                        $.modal.msgError(callback.e_msg);
+                        return;	//运行出错出口
+                    }
+                    reProcessGene(list,i+1);
+                },
+                error:function (jqXHR, textStatus, errorThrown) {
+                    layer.close(t);
+                    errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                    $.modal.msgError(errorThrown);
+                    return;
+                }
+            });
+        }
+
+        function addTableRow(data){
+            var a='',b='',c='';
+            for(var key in data) {
+                if(key.indexOf('流程')!==-1)
+                    a = '<tr><td colspan="2">'+ key +'：'+ data[key] + '</td></tr>';
+                if(key.indexOf('状态')!==-1)
+                    b = '<td>'+ key +'：'+ data[key] + '</td>';
+                if(key.indexOf('耗时')!==-1)
+                    c = '<td>'+ key +'：'+ data[key] + '</td>';
+            }
+            var html = a + '<tr>' + b + c + '</tr>';
+            $('#table_title').append(html);
+        }
+
+        /**
+         * 更新实例的finalProcess
+         * @param process
+         * @returns {boolean}
+         */
+        function updateGeneInstanceFinalProcess(process){
+            var instanceId = $('#id').val();
+            if(isBlank(instanceId) || isBlank(process.id))
+                return false;
+            $.ajax({
+                type:'post',
+                url:'/gdp/instance/edit',
+                data:{id:instanceId,finalprocessid:process.id},
+                success:function (result) {
+                    if(isNotBlank(result.code)) {
+                        console.log('更新流程步骤成功,流程' + process.step + ':' + process.name);
+                    }
+                },
+                error:function (jqXHR, textStatus, errorThrown) {
+                    errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                    $.modal.msgError(errorThrown,{title:'错误提示',icon:'2'});
+                }
+            })
+        }
+
+        function dataTimeSum(time1,time2) {
+            // if(!js.isArray(times)){
+            // 	return false;
+            // }
+            var timeMillis = '';
+            $.ajax({
+                type:'post',
+                url:'/gdp/instance/dataTimeSum',
+                data:{time1:time1,time2:time2},
+                async:false,
+                success:function (callback) {
+                    console.log(callback.data)
+                    if(isNotBlank(callback.data)) {
+                        timeMillis = callback.data.dataTimeSum;
+                    }
+                },
+                error:function (jqXHR, textStatus, errorThrown) {
+                    errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                    $.modal.msgError(errorThrown,{title:'错误提示',icon:'2'});
+                }
+            })
+            return timeMillis;
+        }
+
+        function isNotBlank(obj) {
+            return (obj !== null && obj !== '' && typeof(obj) !== 'undefined');
+        }
+        function isBlank(obj) {
+            return !isNotBlank(obj);
+        }
+
+    </script>
+</body>
+</html>

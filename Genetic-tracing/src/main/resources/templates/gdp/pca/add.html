@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <th:block th:include="include :: header('新增数据降维')" />
+    <th:block th:include="include :: datetimepicker-css" />
+</head>
+<body class="white-bg">
+    <div class="wrapper wrapper-content animated fadeInRight ibox-content">
+        <form class="form-horizontal m" id="form-pca-add">
+            <div class="col-md-6 b-r">
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">实例名称：</label>
+                    <div class="col-sm-9">
+                        <input name="name" id="name" class="form-control" type="text" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">状态：</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-static" id="resultStatus"></p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">累计耗时：</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-static"></p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-12 col-sm-offset-3">
+                        <button id="startGenePca" class="btn btn-primary" disabled>开始</button>
+                        <button onclick="$.modal.closeTab()" class="btn btn-danger" type="button">关闭</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group text-center">
+                    <h5>记录</h5>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">图1：</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-static">
+                            <img id="pca_src1" src="" width="600px" height="600px">
+                        </p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">图2：</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-static">
+                            <img id="pca_src2" src="" width="600px" height="600px">
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <th:block th:include="include :: footer" />
+    <th:block th:include="include :: datetimepicker-js" />
+    <script th:inline="javascript">
+
+        $('#name').change(function () {
+            var name = $(this).val();
+                if(isNotBlank(name)) {
+                    $.ajax({
+                        type: 'post',
+                        url: '/gdp/pca/findPcaInstanceByName',
+                        data: {name: name},
+                        success: function (callback) {
+                            if(isNotBlank(callback.data.result) && callback.data.result === "true"){
+                                $('#startGenePca').removeAttr("disabled");
+                            }else{
+                                $('#startGenePca').attr("disabled",true);
+                                $('#evoTreeName').val("");
+                                $.modal.msgError(callback.data.msg);
+                            }
+                        },
+                        error:function (jqXHR, textStatus, errorThrown) {
+                            errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                            $.modal.msgError(errorThrown);
+                        }
+                    })
+                }
+        });
+
+        $('#startGenePca').click(function () {
+            var name = $('#name').val();
+            if(isBlank(name)){
+                $.modal.msgError('请先填写实例名称！',{});
+                return false;
+            }
+            var t;
+            $.ajax({
+                type:'post',
+                url:'/gdp/pca/processPca',
+                data:{name: name},
+                async:true,
+                beforeSend:function () {
+                    var startGenePca = $('#startGenePca');
+                    startGenePca.attr('class','btn btn-default');
+                    startGenePca.attr('disabled',true);
+                    t =layer.msg('正在处理',{icon:16,shade:0.01,time:0,shadeClose:false});
+                },
+                success:function(callback){
+                    layer.close(t);
+                    if(isNotBlank(callback.data.result) && callback.data.result === "true"){
+                        $('#time').text(callback.data.time);
+                        $('#resultStatus').text("成功");
+                        $('#pca_src1').attr('src', callback.data.src1);
+                        $('#pca_src2').attr('src', callback.data.src2);
+                    } else {
+                        $('#resultStatus').text("失败");
+                    }
+                    $.modal.msgSuccess(callback.data.msg);
+                },
+                error:function (jqXHR, textStatus, errorThrown) {
+                    errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                    $.modal.msgError(errorThrown);
+                    return;
+                }
+            });
+        });
+
+        function isNotBlank(obj) {
+            return (obj !== null && obj !== '' && typeof(obj) !== 'undefined');
+        }
+        function isBlank(obj) {
+            return !isNotBlank(obj);
+        }
+    </script>
+</body>
+</html>

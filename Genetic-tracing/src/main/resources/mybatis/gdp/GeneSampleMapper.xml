@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.project.gdp.mapper.GeneSampleMapper">
+    
+    <resultMap type="GeneSample" id="GeneSampleResult">
+        <result property="countries"    column="countries"    />
+        <result property="serialNumber"    column="serial_number"    />
+        <result property="columnNumber"    column="column_number"    />
+    </resultMap>
+
+    <resultMap type="GeneInstanceSample" id="GeneInstanceSampleResult">
+        <result property="id"    column="id"    />
+        <result property="instanceId"    column="instance_id"    />
+        <result property="countries"    column="countries"    />
+        <result property="serialNumber"    column="serial_number"    />
+        <result property="columnNumber"    column="column_number"    />
+    </resultMap>
+
+    <sql id="selectGeneSampleVo">
+        select countries, serial_number, column_number from gdp_sample
+    </sql>
+
+    <sql id="selectGeneInstanceSampleVo">
+        select id,instance_id,countries, serial_number, column_number from gdp_instance_sample
+    </sql>
+
+    <select id="selectGeneSampleList" parameterType="GeneSample" resultMap="GeneSampleResult">
+        <include refid="selectGeneSampleVo"/>
+        <where>  
+            <if test="countries != null  and countries != ''"> and countries = #{countries}</if>
+            <if test="serialNumber != null  and serialNumber != ''"> and serial_number = #{serialNumber}</if>
+            <if test="columnNumber != null "> and column_number = #{columnNumber}</if>
+        </where>
+    </select>
+
+    <select id="listSelectedSamples" parameterType="GeneInstanceSample" resultMap="GeneInstanceSampleResult">
+        <include refid="selectGeneInstanceSampleVo"/>
+        <where>
+            <if test="id != null  and id != ''"> and id = #{id}</if>
+            <if test="instanceId != null  and instanceId != ''"> and instance_id = #{instanceId}</if>
+            <if test="countries != null  and countries != ''"> and countries = #{countries}</if>
+            <if test="serialNumber != null  and serialNumber != ''"> and serial_number = #{serialNumber}</if>
+            <if test="columnNumber != null "> and column_number = #{columnNumber}</if>
+        </where>
+    </select>
+
+    <select id="listUnSelectedSamples" parameterType="GeneInstanceSample" resultMap="GeneSampleResult">
+        <include refid="selectGeneSampleVo"/>
+        <where>
+            serial_number not in (select serial_number from gdp_instance_sample where instance_id = #{instanceId} )
+            <if test="countries != null  and countries != ''"> and countries = #{countries}</if>
+            <if test="serialNumber != null  and serialNumber != ''"> and serial_number = #{serialNumber}</if>
+            <if test="columnNumber != null "> and column_number = #{columnNumber}</if>
+        </where>
+    </select>
+    
+    <select id="selectGeneSampleBySerialNumber" parameterType="String" resultMap="GeneSampleResult">
+        <include refid="selectGeneSampleVo"/>
+        where serial_number = #{serialNumber}
+    </select>
+
+    <select id="getCountriesBySerialNumber" resultType="String">
+		SELECT countries FROM gdp_sample WHERE serial_number = #{serialNumber}
+	</select>
+
+    <select id="getCountriesByColumnNumber" resultType="String">
+        SELECT countries FROM gdp_sample WHERE column_number = #{columnNumber}
+    </select>
+        
+    <insert id="insertGeneSample" parameterType="GeneSample">
+        insert into gdp_sample
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="countries != null and countries != ''">countries,</if>
+            <if test="serialNumber != null and serialNumber != ''">serial_number,</if>
+            <if test="columnNumber != null">column_number,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="countries != null and countries != ''">#{countries},</if>
+            <if test="serialNumber != null and serialNumber != ''">#{serialNumber},</if>
+            <if test="columnNumber != null">#{columnNumber},</if>
+         </trim>
+    </insert>
+
+    <update id="updateGeneSample" parameterType="GeneSample">
+        update gdp_sample
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="countries != null and countries != ''">countries = #{countries},</if>
+            <if test="columnNumber != null">column_number = #{columnNumber},</if>
+        </trim>
+        where serial_number = #{serialNumber}
+    </update>
+
+    <delete id="deleteGeneSampleBySerialNumber" parameterType="String">
+        delete from gdp_sample where serial_number = #{serialNumber}
+    </delete>
+
+    <delete id="deleteGeneSampleBySerialNumbers" parameterType="String">
+        delete from gdp_sample where serial_number in 
+        <foreach item="serialNumber" collection="array" open="(" separator="," close=")">
+            #{serialNumber}
+        </foreach>
+    </delete>
+
+    <insert id="saveSelectedSamples" parameterType="GeneInstanceSample">
+        insert into gdp_instance_sample
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">id,</if>
+            <if test="instanceId != null and instanceId != ''">instance_id,</if>
+            <if test="countries != null and countries != ''">countries,</if>
+            <if test="serialNumber != null and serialNumber != ''">serial_number,</if>
+            <if test="columnNumber != null">column_number,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">#{id},</if>
+            <if test="instanceId != null and instanceId != ''">#{instanceId},</if>
+            <if test="countries != null and countries != ''">#{countries},</if>
+            <if test="serialNumber != null and serialNumber != ''">#{serialNumber},</if>
+            <if test="columnNumber != null">#{columnNumber},</if>
+        </trim>
+    </insert>
+
+    <delete id="removeSelectedSamples" parameterType="String">
+        delete from gdp_instance_sample where id = #{id}
+    </delete>
+
+    <delete id="removeAllSelectedSamples" parameterType="String">
+        delete from gdp_instance_sample where instance_id = #{instanceId}
+    </delete>
+
+</mapper>

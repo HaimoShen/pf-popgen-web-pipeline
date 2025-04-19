@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <th:block th:include="include :: header('修改处理实例')" />
+    <th:block th:include="include :: datetimepicker-css" />
+</head>
+<body class="white-bg">
+    <div class="wrapper wrapper-content animated fadeInRight ibox-content">
+        <form class="form-horizontal m" id="form-instance-edit" th:object="${geneInstance}">
+<!--            <input name="name" th:field="*{name}" type="hidden">-->
+<!--            <div class="form-group">    -->
+<!--                <label class="col-sm-3 control-label">最后运行的流程id：</label>-->
+<!--                <div class="col-sm-8">-->
+<!--                    <input name="finalprocessid" th:field="*{finalprocessid}" class="form-control" type="text">-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="form-group">    -->
+<!--                <label class="col-sm-3 control-label">创建时间：</label>-->
+<!--                <div class="col-sm-8">-->
+<!--                    <div class="input-group date">-->
+<!--                        <input name="createDate" th:value="${#dates.format(geneInstance.createDate, 'yyyy-MM-dd')}" class="form-control" placeholder="yyyy-MM-dd" type="text">-->
+<!--                        <span class="input-group-addon"><i class="fa fa-calendar"></i></span>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="form-group">    -->
+<!--                <label class="col-sm-3 control-label">更新时间：</label>-->
+<!--                <div class="col-sm-8">-->
+<!--                    <div class="input-group date">-->
+<!--                        <input name="updateDate" th:value="${#dates.format(geneInstance.updateDate, 'yyyy-MM-dd')}" class="form-control" placeholder="yyyy-MM-dd" type="text">-->
+<!--                        <span class="input-group-addon"><i class="fa fa-calendar"></i></span>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+            <input type="hidden" id="id" name="id" th:field="*{id}" />
+            <div class="col-md-6 b-r">
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">实例名称：</label>
+                    <div class="col-sm-9">
+                        <input th:field="*{name}" id="name" class="form-control" type="text" disabled="disabled">
+                    </div>
+                </div>
+<!--                <div class="form-group">-->
+<!--                    <label class="col-sm-3 control-label">是否合并：</label>-->
+<!--                    <div class="col-sm-9">-->
+<!--                        <label class="radio-box">-->
+<!--                            <input type="radio" value="1" id="combineStatus1" disabled="disabled" th:field="*{combinestatus}" >是</label>-->
+<!--                        <label class="radio-box">-->
+<!--                            <input type="radio" value="0" id="combineStatus2" disabled="disabled" th:field="*{combinestatus}" >否</label>-->
+<!--                    </div>-->
+<!--                </div>-->
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">当前处理步骤：</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-static" id="currentStep">[[${geneInstance.finalProcessName}]]</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-sm-3 control-label">累计耗时：</label>
+                    <div class="col-sm-9">
+                        <p class="form-control-static" id="timeConsum">[[${timeConsum}]]</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-12 col-sm-offset-3">
+                        <button id="btnContinue" th:if="${continueFlag}" class="btn btn-primary">继续运行</button>
+                        <button onclick="$.modal.closeTab()" class="btn btn-danger" type="button">返回</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group text-center">
+                    <strong>记录</strong>
+                </div>
+                <div id="scrollDiv" style="overflow-y: scroll;max-height: 400px;">
+                    <table th:each="item : ${geneTaskList}">
+                        <tr><td colspan="2">流程[[${item.processStep}]]：[[${item.processName}]]</td></tr>
+                        <tr>
+                            <td th:if="${item.status} == 1">状态：成功</td>
+                            <td th:if="${item.status} == 0">状态：失败</td>
+                            <td>耗时：[[${item.time}]]</td>
+                        </tr>
+                    </table>
+                    <table id="table_title">
+
+                    </table>
+                </div>
+            </div>
+        </form>
+    </div>
+    <th:block th:include="include :: footer" />
+    <th:block th:include="include :: datetimepicker-js" />
+    <script th:inline="javascript">
+        var prefix = ctx + "gdp/instance";
+        //处理任务滚动条设置最下方
+        $('#scrollDiv').scrollTop($('#scrollDiv')[0].scrollHeight);
+
+        //继续运行
+        $('#btnContinue').click(function () {
+            var name = [[${geneInstance.name}]];
+            var btnContinue = $('#btnContinue');
+            btnContinue.attr('class','btn btn-default');
+            btnContinue.attr('disabled',true);
+            var combineStatus = $('input:radio[name=combineStatus]:checked').val();
+            getGeneProcessListAndCreateInstance(name,false,combineStatus);
+        });
+
+        /**
+         * 获取生效流程和创建实例
+         * @param dirName	实例名称
+         * @param flag		是否创建实例
+         */
+        function getGeneProcessListAndCreateInstance(dirName,flag,combineStatus) {
+            $.ajax({
+                type:'post',
+                url:'/gdp/process/findStatusListAndCreateInstance',
+                data:{dirName:dirName,flag:flag,combineStatus:combineStatus},
+                success:function(callback){
+                    if(isNotBlank(callback.data)){
+                        var list = callback.data.list;
+                        var tempList = [];
+                        var existList = [[${existgeneProcessIdList}]];
+                        // console.log(existList)
+                        list.forEach(function (it) {
+                            if(existList.indexOf(it.id)===-1){
+                                tempList.push(it);
+                            }
+                        });
+                        // console.log(tempList);
+                        reProcessGene(tempList,0);
+                    }
+                },
+                error:function (jqXHR, textStatus, errorThrown) {
+                    errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                    layer.msg(errorThrown,{title:'错误提示',icon:'2'})
+                }
+            })
+        }
+
+        /**
+         * 递归list的数据进行流程处理请求
+         * @param list	流程列表
+         * @param i		下标
+         */
+        function reProcessGene(list,i){
+            var process = list[i];
+            if(i===list.length){
+                return;	//运行完毕出口
+            }
+            $('#currentStep').text('流程'+process.step+'：'+process.name);
+            $('#scrollDiv').scrollTop($('#scrollDiv')[0].scrollHeight+50);
+            updateGeneInstanceFinalProcess(process);
+            var t;
+            var name = $('#name').val();
+            var instanceId = $('#id').val();
+            $.ajax({
+                type:'post',
+                url:'/gdp/process/processGene',
+                data:{id:process.id,dirName:name,instanceId:instanceId},
+                async:true,
+                beforeSend:function () {
+                    t =layer.msg('正在进行流程'+process.step,{icon:16,shade:0.01,time:0,shadeClose:false});
+                },
+                success:function(callback){
+                    addTableRow(callback.data);
+                    for(var key in callback.data){
+                        if(key.indexOf('耗时')!==-1){
+                            var time = $('#timeConsum').text();
+                            $('#timeConsum').text(dataTimeSum(time,callback.data[key]));
+                        }
+                    }
+                    layer.close(t);
+                    if(isNotBlank(callback.e_msg)){
+                        $.modal.msgError(callback.e_msg);
+                        return;	//运行出错出口
+                    }
+                    reProcessGene(list,i+1);
+                },
+                error:function (jqXHR, textStatus, errorThrown) {
+                    layer.close(t);
+                    errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                    $.modal.msgError(errorThrown);
+                    return;
+                }
+            });
+        }
+
+        function addTableRow(data){
+            var a='',b='',c='';
+            for(var key in data) {
+                if(key.indexOf('流程')!==-1)
+                    a = '<tr><td colspan="2">'+ key +'：'+ data[key] + '</td></tr>';
+                if(key.indexOf('状态')!==-1)
+                    b = '<td>'+ key +'：'+ data[key] + '</td>';
+                if(key.indexOf('耗时')!==-1)
+                    c = '<td>'+ key +'：'+ data[key] + '</td>';
+            }
+            var html = a + '<tr>' + b + c + '</tr>';
+            $('#table_title').append(html);
+        }
+
+        /**
+         * 更新实例的finalProcess
+         * @param process
+         * @returns {boolean}
+         */
+        function updateGeneInstanceFinalProcess(process){
+            var instanceId = $('#id').val();
+            if(isBlank(instanceId) || isBlank(process.id))
+                return false;
+            $.ajax({
+                type:'post',
+                url:'/gdp/instance/edit',
+                data:{id:instanceId,finalprocessid:process.id},
+                success:function (result) {
+                    if(isNotBlank(result.code)) {
+                        console.log('更新流程步骤成功,流程' + process.step + ':' + process.name);
+                    }
+                },
+                error:function (jqXHR, textStatus, errorThrown) {
+                    errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                    $.modal.msgError(errorThrown);
+                }
+            })
+        }
+
+        function dataTimeSum(time1,time2) {
+            // if(!js.isArray(times)){
+            // 	return false;
+            // }
+            var timeMillis = '';
+            $.ajax({
+                type:'post',
+                url:'/gdp/instance/dataTimeSum',
+                data:{time1:time1,time2:time2},
+                async:false,
+                success:function (callback) {
+                    console.log(callback.data)
+                    if(isNotBlank(callback.data)) {
+                        timeMillis = callback.data.dataTimeSum;
+                    }
+                },
+                error:function (jqXHR, textStatus, errorThrown) {
+                    errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                    $.modal.msgError(errorThrown);
+                }
+            })
+            return timeMillis;
+        }
+
+        function isNotBlank(obj) {
+            return (obj !== null && obj !== '' && typeof(obj) !== 'undefined');
+        }
+        function isBlank(obj) {
+            return !isNotBlank(obj);
+        }
+
+
+    </script>
+</body>
+</html>

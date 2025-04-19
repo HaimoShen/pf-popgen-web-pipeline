@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.project.gdp.mapper.GeneInstanceMapper">
+    
+    <resultMap type="GeneInstance" id="GeneInstanceResult">
+        <result property="id"    column="id"    />
+        <result property="name"    column="name"    />
+        <result property="finalprocessid"    column="finalprocessid"    />
+        <result property="finalProcessName"    column="finalProcessName"    />
+        <result property="finalProcessStatus"    column="finalProcessStatus"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createDate"    column="create_date"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateDate"    column="update_date"    />
+        <result property="combinestatus"    column="combinestatus"    />
+    </resultMap>
+
+    <sql id="selectGeneInstanceVo">
+        select a.id, a.name, a.finalprocessid, g.name finalProcessName,t.status finalProcessStatus, a.create_date, a.update_by, a.update_date, a.combinestatus,u.user_name create_by from gdp_instance a
+        left join gdp_process g on g.id = a.finalProcessId
+		left join gdp_task t on t.instance_id = a.id and t.process_id = a.finalProcessId
+		left join sys_user u on a.create_by = u.user_id
+    </sql>
+
+    <select id="selectGeneInstanceList" parameterType="GeneInstance" resultMap="GeneInstanceResult">
+        <include refid="selectGeneInstanceVo"/>
+        <where>
+            <if test="name != null  and name != ''"> and a.name like '%'||#{name}||'%'</if>
+        </where>
+    </select>
+    
+    <select id="selectGeneInstanceById" parameterType="String" resultMap="GeneInstanceResult">
+        <include refid="selectGeneInstanceVo"/>
+        where a.id = #{id}
+    </select>
+        
+    <insert id="insertGeneInstance" parameterType="GeneInstance">
+        insert into gdp_instance
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">id,</if>
+            <if test="name != null and name != ''">name,</if>
+            <if test="finalprocessid != null">finalprocessid,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createDate != null">create_date,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateDate != null">update_date,</if>
+            <if test="combinestatus != null">combinestatus,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">#{id},</if>
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="finalprocessid != null">#{finalprocessid},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createDate != null">#{createDate},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateDate != null">#{updateDate},</if>
+            <if test="combinestatus != null">#{combinestatus},</if>
+         </trim>
+    </insert>
+
+    <update id="updateGeneInstance" parameterType="GeneInstance">
+        update gdp_instance
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="finalprocessid != null">finalprocessid = #{finalprocessid},</if>
+            <if test="createBy != null">create_by = #{createBy},</if>
+            <if test="createDate != null">create_date = #{createDate},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateDate != null">update_date = #{updateDate},</if>
+            <if test="combinestatus != null">combinestatus = #{combinestatus},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteGeneInstanceById" parameterType="String">
+        delete from gdp_instance where id = #{id}
+    </delete>
+
+    <delete id="deleteGeneInstanceByIds" parameterType="String">
+        delete from gdp_instance where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="getByName" parameterType="String" resultType="GeneInstance">
+        <include refid="selectGeneInstanceVo"/>
+        WHERE a.name = #{name}
+    </select>
+
+</mapper>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.project.gdp.mapper.GeneProcessMapper">
+    
+    <resultMap type="GeneProcess" id="GeneProcessResult">
+        <result property="id"    column="id"    />
+        <result property="name"    column="name"    />
+        <result property="step"    column="step"    />
+        <result property="command"    column="command"    />
+        <result property="content"    column="content"    />
+        <result property="status"    column="status"    />
+        <result property="ignorecommand"    column="ignorecommand"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createDate"    column="create_date"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateDate"    column="update_date"    />
+    </resultMap>
+
+    <sql id="selectGeneProcessVo">
+        select id, name, step, command, content, status, ignorecommand, create_by, create_date, update_by, update_date from gdp_process
+    </sql>
+
+    <select id="selectGeneProcessList" parameterType="GeneProcess" resultMap="GeneProcessResult">
+        <include refid="selectGeneProcessVo"/>
+        <where>  
+            <if test="name != null  and name != ''"> and name like '%'||#{name}||'%'</if>
+            <if test="status != null "> and status = #{status}</if>
+            <if test="ignorecommand != null "> and ignorecommand = #{ignorecommand}</if>
+        </where>
+        order by step
+    </select>
+    
+    <select id="selectGeneProcessById" parameterType="String" resultMap="GeneProcessResult">
+        <include refid="selectGeneProcessVo"/>
+        where id = #{id}
+    </select>
+        
+    <insert id="insertGeneProcess" parameterType="GeneProcess">
+        insert into gdp_process
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">id,</if>
+            <if test="name != null and name != ''">name,</if>
+            <if test="step != null">step,</if>
+            <if test="command != null">command,</if>
+            <if test="content != null">content,</if>
+            <if test="status != null">status,</if>
+            <if test="ignorecommand != null">ignorecommand,</if>
+            <if test="createBy != null">create_by,</if>
+            create_date
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">#{id},</if>
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="step != null">#{step},</if>
+            <if test="command != null">#{command},</if>
+            <if test="content != null">#{content},</if>
+            <if test="status != null">#{status},</if>
+            <if test="ignorecommand != null">#{ignorecommand},</if>
+            <if test="createBy != null">#{createBy},</if>
+            (datetime(CURRENT_TIMESTAMP,'localtime'))
+         </trim>
+    </insert>
+
+    <update id="updateGeneProcess" parameterType="GeneProcess">
+        update gdp_process
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="step != null">step = #{step},</if>
+            <if test="command != null">command = #{command},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="ignorecommand != null">ignorecommand = #{ignorecommand},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_date = (datetime(CURRENT_TIMESTAMP,'localtime'))
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteGeneProcessById" parameterType="String">
+        delete from gdp_process where id = #{id}
+    </delete>
+
+    <delete id="deleteGeneProcessByIds" parameterType="String">
+        delete from gdp_process where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="batchUpdate">
+        update gdp_process set status = #{status} where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

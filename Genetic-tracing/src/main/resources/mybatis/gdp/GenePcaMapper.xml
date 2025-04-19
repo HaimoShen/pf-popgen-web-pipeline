@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.project.gdp.mapper.GenePcaMapper">
+    
+    <resultMap type="GenePca" id="GenePcaResult">
+        <result property="id"    column="id"    />
+        <result property="name"    column="name"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createDate"    column="create_date"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateDate"    column="update_date"    />
+        <result property="resultStatus"    column="result_status"    />
+        <result property="resultInfo"    column="result_info"    />
+        <result property="time"    column="time"    />
+        <result property="path"    column="path"    />
+        <result property="excelRange"    column="excel_range"    />
+        <result property="src1"    column="src1"    />
+        <result property="src2"    column="src2"    />
+    </resultMap>
+
+    <sql id="selectGenePcaVo">
+        select id, name, create_by, create_date, update_by, update_date, result_status, result_info, time, path, excel_range, src1, src2 from gdp_pca
+    </sql>
+
+    <select id="selectGenePcaList" parameterType="GenePca" resultMap="GenePcaResult">
+        <include refid="selectGenePcaVo"/>
+        <where>  
+            <if test="name != null  and name != ''"> and name like '%'||#{name}||'%'</if>
+            <if test="createBy != null  and createBy != ''"> and create_by = #{createBy}</if>
+        </where>
+    </select>
+    
+    <select id="selectGenePcaByName" parameterType="String" resultMap="GenePcaResult">
+        <include refid="selectGenePcaVo"/>
+        where name = #{name}
+    </select>
+        
+    <insert id="insertGenePca" parameterType="GenePca">
+        insert into gdp_pca
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">id,</if>
+            <if test="name != null and name != ''">name,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            <if test="resultStatus != null">result_status,</if>
+            <if test="resultInfo != null">result_info,</if>
+            <if test="time != null">time,</if>
+            <if test="path != null">path,</if>
+            <if test="excelRange != null">excel_range,</if>
+            <if test="src1 != null">src1,</if>
+            <if test="src2 != null">src2,</if>
+            create_date
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null and id != ''">#{id},</if>
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            <if test="resultStatus != null">#{resultStatus},</if>
+            <if test="resultInfo != null">#{resultInfo},</if>
+            <if test="time != null">#{time},</if>
+            <if test="path != null">#{path},</if>
+            <if test="excelRange != null">#{excelRange},</if>
+            <if test="src1 != null">#{src1},</if>
+            <if test="src2 != null">#{src2},</if>
+            (datetime(CURRENT_TIMESTAMP,'localtime'))
+         </trim>
+    </insert>
+
+    <update id="updateGenePca" parameterType="GenePca">
+        update gdp_pca
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="id != null and id != ''">id = #{id},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="resultStatus != null">result_status = #{resultStatus},</if>
+            <if test="resultInfo != null">result_info = #{resultInfo},</if>
+            <if test="time != null">time = #{time},</if>
+            <if test="path != null">path = #{path},</if>
+            <if test="excelRange != null">excel_range = #{excelRange},</if>
+            <if test="src1 != null">src1 = #{src1},</if>
+            <if test="src2 != null">src2 = #{src2},</if>
+            update_date = (datetime(CURRENT_TIMESTAMP,'localtime'))
+        </trim>
+        where name = #{name}
+    </update>
+
+    <delete id="deleteGenePcaByName" parameterType="String">
+        delete from gdp_pca where name = #{name}
+    </delete>
+
+    <delete id="deleteGenePcaByNames" parameterType="String">
+        delete from gdp_pca where name in 
+        <foreach item="name" collection="array" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+    </delete>
+
+    <select id="getByName" parameterType="String" resultType="GenePca">
+        <include refid="selectGenePcaVo"/>
+        WHERE name = #{name}
+    </select>
+
+</mapper>

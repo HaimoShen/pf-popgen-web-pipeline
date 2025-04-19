@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <th:block th:include="include :: header('样本合并')" />
+</head>
+<body class="white-bg">
+<div class="wrapper wrapper-content animated fadeInRight ibox-content">
+    <div class="col-md-6">
+        <div class="container-div">
+            <div class="row">
+                <div class="col-sm-12 search-collapse">
+                    <form id="form1">
+                        <div class="select-list">
+                            <ul>
+                                <li>
+                                    <input type="text" id="instanceId1" name="instanceId" hidden/>
+                                </li>
+                                <li>
+                                    国家：<input type="text" name="countries"/>
+                                </li>
+                                <li>
+                                    编号：<input type="text" name="serialNumber"/>
+                                </li>
+                                <li>
+                                    <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('form1', 'bootstrap-table1')"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                                    <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset('form1', 'bootstrap-table1')"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="btn-group-sm" id="toolbar1" role="group">
+                    <a class="btn btn-primary" id="checkButton" onclick="checkItem()">
+                        <i class="glyphicon glyphicon-ok"></i> 确认选择
+                    </a>
+                </div>
+                <div class="col-xs-12 select-table table-striped">
+                    <table id="bootstrap-table1"></table>
+                </div>
+            </div>
+        </div>
+
+        <div class="container-div" style="margin-top: 50px">
+            <div class="row">
+                <div class="col-sm-12 search-collapse" style="display: none">
+                    <form id="form2">
+                        <div class="select-list">
+                            <ul>
+                                <li>
+                                   <input type="text" id="instanceId2" name="instanceId"/>
+                                </li>
+
+                                <li>
+                                    <a class="btn btn-primary btn-rounded btn-sm" onclick="$.table.search('form2', 'bootstrap-table2')"><i class="fa fa-search"></i>&nbsp;搜索</a>
+                                    <a class="btn btn-warning btn-rounded btn-sm" onclick="$.form.reset('form2', 'bootstrap-table2')"><i class="fa fa-refresh"></i>&nbsp;重置</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="form-group text-center">
+                    <strong>已选样本列表</strong>
+                </div>
+
+                <div class="btn-group-sm" id="toolbar2" role="group">
+                    <a class="btn btn-warning" id="removeAllButton" onclick="removeAllSelected()">
+                        <i class="glyphicon glyphicon-trash"></i> 移除所有
+                    </a>
+                </div>
+                <div class="col-xs-12 select-table table-striped">
+                    <table id="bootstrap-table2"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group text-center"> <button type="button" id="startGeneSample" onclick="startMergeVcfStep1()" class="btn btn-w-m btn-info">开始</button> </div>
+        <div class="form-group text-center">
+            <strong>进程展示</strong>
+        </div>
+        <div class="form-group text-center">
+            <p id="sampleProcess1"></p>
+            <p id="sampleState1"></p>
+            <p id="sampleProcess2"></p>
+            <p id="sampleState2"></p>
+            <p id="sampleProcess3"></p>
+            <p id="sampleState3"></p>
+        </div>
+    </div>
+
+</div>
+<th:block th:include="include :: footer" />
+<script th:inline="javascript">
+    var prefix = ctx + "gdp/sample";
+    var instanceId = [[${instanceId}]];
+    var instanceName = [[${instanceName}]];
+    $("#instanceId1").val(instanceId);
+    $("#instanceId2").val(instanceId);
+
+    $(function() {
+        var options = {
+            id:"bootstrap-table1",
+            formId: "form1",
+            toolbar: "toolbar1",
+            url: prefix + "/listUnSelectedSamples",
+            modalName: "样本",
+            showSearch: false,
+            showRefresh: false,
+            showToggle: false,
+            showColumns: false,
+            columns: [{
+                checkbox: true
+            },
+            {
+                field : 'countries',
+                title : '样本国家'
+            },
+            {
+                field : 'serialNumber',
+                title : '样本编号'
+            },
+            {
+                field : 'columnNumber',
+                title : '样本列数'
+            }]
+        };
+        $.table.init(options);
+    });
+
+    $(function() {
+        var options = {
+            id:"bootstrap-table2",
+            formId: "form2",
+            toolbar: "toolbar2",
+            url: prefix + "/listSelectedSamples",
+            modalName: "样本",
+            showSearch: false,
+            showRefresh: false,
+            showToggle: false,
+            showColumns: false,
+            columns: [
+                {
+                    field : 'countries',
+                    title : '样本国家'
+                },
+                {
+                    field : 'serialNumber',
+                    title : '样本编号'
+                },
+                {
+                    field : 'columnNumber',
+                    title : '样本列数'
+                },
+                {
+                    title: '操作',
+                    align: 'center',
+                    formatter: function(value, row, index) {
+                        var actions = [];
+                        actions.push('<a class="btn btn-danger btn-xs" id="removeButton" href="javascript:void(0)" onclick="remove(\'' + row.id + '\')"><i class="fa fa-remove"></i>移除</a>');
+                        return actions.join('');
+                    }
+                }
+            ]
+        };
+        $.table.init(options);
+    });
+
+    // 选中数据
+    function checkItem(){
+        var array = $.table.selectColumns("serialNumber");
+        $.ajax({
+            type:'post',
+            url:prefix+'/saveSelectedSamples',
+            data:{serialNumberArr: array,instanceId:instanceId},
+            async:true,
+            success:function(callback){
+              $.modal.msgSuccess('添加样本成功');
+              $.table.search('form1', 'bootstrap-table1');
+              $.table.search('form2', 'bootstrap-table2');
+            },
+            error:function (jqXHR, textStatus, errorThrown) {
+                errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                $.modal.msgError(errorThrown);
+                return;
+            }
+        });
+    }
+
+    // 选中数据
+    function remove(id){
+        $.ajax({
+            type:'post',
+            url:prefix+'/removeSelectedSamples',
+            data:{id:id},
+            async:true,
+            success:function(callback){
+                $.modal.msgSuccess("移除样本成功");
+                $.table.search('form1', 'bootstrap-table1');
+                $.table.search('form2', 'bootstrap-table2');
+            },
+            error:function (jqXHR, textStatus, errorThrown) {
+                errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                $.modal.msgError(errorThrown);
+                return;
+            }
+        });
+    }
+
+    function removeAllSelected() {
+        $.ajax({
+            type: 'post',
+            url: prefix + '/removeAllSelectedSamples',
+            data: {instanceId: instanceId},
+            async: true,
+            success: function (callback) {
+                $.modal.msgSuccess("移除所有样本成功");
+                $.table.search('form1', 'bootstrap-table1');
+                $.table.search('form2', 'bootstrap-table2');
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                errorThrown = isNotBlank(errorThrown) ? errorThrown : jqXHR.responseText;
+                $.modal.msgError(errorThrown);
+                return;
+            }
+        });
+    }
+
+
+        function startGeneSample(){
+            $.ajax({
+                type:'post',
+                url:prefix+'/sampleLibrary',
+                data:{instanceId:instanceId,instanceName:instanceName},
+                beforeSend:function(){
+                    $("#checkButton").attr("disabled", true);
+                    $("#removeAllButton").attr("disabled", true);
+                    $("#removeButton").attr("disabled", true);
+                    $("#startGeneSample").attr("disabled", true);
+
+                    $("#sampleProcess1").html("正在进行的流程：处理样本库");
+                    $("#sampleState1").html("流程状态：正在执行");
+                },
+                success:function(callback){
+                    if(callback.data.status === "success"){
+                        $("#sampleProcess1").html("所在流程：处理样本库");
+                        $("#sampleState1").html("流程状态：处理样本库完成");
+                        following(callback.data.sampleLibrary);
+                    }else if(callback.data.status === "fail"){
+                        $("#sampleState1").html("流程状态：处理样本库失败");
+                        $.modal.msgError("样本库处理失败!");
+                    }
+                },
+            });
+        };
+
+    function startMergeVcfStep1(){
+        var index = layer.load(0, {shade: false});
+        $.ajax({
+            type:'post',
+            url:prefix+'/formatInstanceVcf',
+            data:{instanceName:instanceName},
+            beforeSend:function() {
+                $("#checkButton").attr("disabled", true);
+                $("#removeAllButton").attr("disabled", true);
+                $("#removeButton").attr("disabled", true);
+                $("#startGeneSample").attr("disabled", true);
+
+                $("#sampleProcess1").html("正在进行的流程：格式化流程最终文件");
+                $("#sampleState1").html("流程状态：正在执行");
+            },
+            success:function(callback){
+                layer.close(index);
+                if(callback.data.status === "success"){
+                    $("#sampleProcess1").html("所在流程：格式化流程最终文件");
+                    $("#sampleState1").html("流程状态：格式化流程最终文件完成");
+                    startMergeVcfStep2();
+                }else if(callback.data.status === "fail"){
+                    $("#sampleState1").html("流程状态：格式化流程最终文件失败");
+                    $.modal.msgError(callback.data.msg);
+                }
+            },
+        });
+    };
+
+    function startMergeVcfStep2(){
+        var index = layer.load(0, {shade: false});
+        $.ajax({
+            type:'post',
+            url:prefix+'/extractSamples',
+            data:{instanceId:instanceId,instanceName:instanceName},
+            beforeSend:function(){
+                $("#sampleProcess2").html("在进行的流程：从标准样本库抽取样本");
+                $("#sampleState2").html("流程状态：正在执行");
+            },
+            success:function(callback){
+                layer.close(index);
+                if(callback.data.status === "success"){
+                    $("#sampleProcess2").html("在进行的流程：从标准样本库抽取样本");
+                    $("#sampleState2").html("流程状态：抽取样本完成");
+                    startMergeVcfStep3();
+                }else if(callback.data.status ==="fail"){
+                    $("#sampleState2").html("流程状态：抽取样本失败");
+                    $.modal.msgError(callback.data.msg);
+                }
+            },
+        });
+    };
+
+    function startMergeVcfStep3(){
+        var index = layer.load(0, {shade: false});
+        $.ajax({
+            type:'post',
+            url:prefix+'/merge',
+            data:{instanceName:instanceName},
+            beforeSend:function(){
+                $("#sampleProcess3").html("在进行的流程：合并-过滤样本文件");
+                $("#sampleState3").html("流程状态：正在执行");
+            },
+            success:function(callback){
+                layer.close(index);
+                if(callback.data.status === "success"){
+                    $("#sampleProcess3").html("所在流程：合并-过滤样本文件");
+                    $("#sampleState3").html("流程状态：合并-过滤样本文件完成");
+                }else if(callback.data.status === "fail"){
+                    $("#sampleState3").html("流程状态：合并-过滤样本文件失败");
+                    $.modal.msgError(callback.data.msg);
+                }
+            },
+        });
+    };
+
+
+</script>
+</body>
+</html>
